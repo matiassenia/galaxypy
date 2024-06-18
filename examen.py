@@ -1,47 +1,62 @@
 import tkinter as tk
-from PIL import Image, ImageOps
+from PIL import Image, ImageTk
 import random
+import numpy as np
 
-# Configuración inicial
-ancho, alto = 800, 600
-colores_espacio = ['#FFD700', '#FFFFFF', '#FF4500', '#00BFFF', '#4B0082', '#9400D3', '#FF69B4', '#00FF7F']
+# Definir una paleta de colores parecida a los de una galaxia
+colores_galaxia = ['#1B03A3', '#3C1A73', '#6C2DC7', '#8D38C9', '#A74AC7', '#F6358A', '#FF0090', '#FF66CC', '#FF99FF', '#FFFFFF']
 
-# Crear la ventana y el canvas
-ventana = tk.Tk()
-ventana.title("Dibujo de Imagen")
-canvas = tk.Canvas(ventana, width=ancho, height=alto, bg='black')
-canvas.pack()
+def dibujar_lineas(canvas, puntos):
+    for i in range(len(puntos)-1):
+        x1, y1 = puntos[i]
+        x2, y2 = puntos[i+1]
+        color = random.choice(colores_galaxia)
+        canvas.create_line(x1, y1, x2, y2, fill=color, width=2)
 
-# Función para cargar y procesar la imagen
-def cargar_imagen(filepath):
-    imagen = Image.open(filepath)
-    imagen = imagen.convert('L')  # Convertir a escala de grises
-    imagen = imagen.resize((ancho, alto))
-    puntos = [(x, y) for y in range(imagen.height) for x in range(imagen.width) if imagen.getpixel((x, y)) < 128]
-    return puntos
-
-# Función para dibujar los puntos y líneas en el canvas
-def dibujar_puntos(puntos):
-    num_puntos = len(puntos)
-    color_anterior = random.choice(colores_espacio)
-    for i in range(num_puntos):
-        x, y = puntos[i]
-        color = random.choice(colores_espacio)
-        canvas.create_oval(x, y, x+10, y+10, fill=color, outline=color)
-        if i > 0:
-            x_prev, y_prev = puntos[i-1]
-            canvas.create_line(x_prev, y_prev, x, y, fill=color_anterior, width=5)
-        color_anterior = color
-
-# Función para generar la galaxia
 def generar_galaxia():
-    canvas.delete("all")  # Limpiar el canvas
-    puntos = cargar_imagen('img/meme.png')  # Cambiar a la ruta de tu imagen
-    dibujar_puntos(puntos)
+    # Cargar la imagen
+    imagen = Image.open('img/meme.png').convert('L')  # Convertir a escala de grises
+    imagen = imagen.resize((500, 500))  # Redimensionar la imagen a 500x500
+    ancho, alto = imagen.size
+    imagen_tk = ImageTk.PhotoImage(imagen)
+    
+    # Mostrar la imagen original a la izquierda
+    canvas_original.create_image(0, 0, anchor=tk.NW, image=imagen_tk)
+    canvas_original.image = imagen_tk
+    
+    # Obtener los puntos blancos de la imagen
+    puntos = [(x, y) for x in range(ancho) for y in range(alto) if imagen.getpixel((x, y)) < 200]
+    np.random.shuffle(puntos)  # Barajar los puntos para un trazado aleatorio
+    
+    # Mostrar los puntos y líneas en el canvas de la galaxia
+    canvas_galaxia.delete('all')
+    canvas_galaxia.create_rectangle(0, 0, ancho, alto, fill='black')
 
-# Botón para iniciar el proceso
-btn_generar = tk.Button(ventana, text="Generar Galaxia", command=generar_galaxia)
-btn_generar.pack()
+    # Dibujar las líneas que formen la imagen
+    if len(puntos) > 0:
+        num_segmentos = min(10000, len(puntos) - 1)  # Ajustar el número de segmentos según el número de puntos disponibles
+        for i in range(num_segmentos):
+            x1, y1 = puntos[i]
+            x2, y2 = puntos[(i + 1) % len(puntos)]
+            color = random.choice(colores_galaxia)
+            canvas_galaxia.create_line(x1, y1, x2, y2, fill=color, width=1)
+            canvas_galaxia.update_idletasks()
+            canvas_galaxia.after(1)
 
-# Iniciar el loop de Tkinter
+# Crear la ventana principal
+ventana = tk.Tk()
+ventana.title("Generador de Galaxia")
+ventana.geometry("1050x550")  # Ajustar el tamaño de la ventana
+
+# Crear dos canvas uno para la imagen original y otro para la galaxia
+canvas_original = tk.Canvas(ventana, width=500, height=500, bg='white')
+canvas_original.pack(side=tk.LEFT)
+
+canvas_galaxia = tk.Canvas(ventana, width=500, height=500, bg='black')
+canvas_galaxia.pack(side=tk.RIGHT)
+
+# Botón para generar la galaxia
+boton_generar = tk.Button(ventana, text="Generar Galaxia", command=generar_galaxia)
+boton_generar.pack()
+
 ventana.mainloop()
